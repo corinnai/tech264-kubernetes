@@ -9,6 +9,10 @@
 
 
 ## Benefits of Kubernetes
+- **Rollback changes**
+- **Load-Balancing**
+- **Open-source**
+- **Self-Healing**
 - **Scalability** 📈: Automatically scales applications up or down based on demand.
 - **Resource Optimization** 💸: Efficiently uses infrastructure, ensuring applications have necessary resources without over-provisioning.
 - **Portability** 🚀: Works across various environments (cloud, on-premise, hybrid).
