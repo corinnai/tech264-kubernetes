@@ -39,6 +39,8 @@
 
 ### What is a cluster
 - A **cluster** is a group of servers (or nodes) that work together to manage and deploy containerized applications, providing redundancy and scalability 
+- Made up with at least **one master node** , must have at **least one working node**, running on onw machine. 
+- Minicub on a vm and is going to have a master node, and working one and is used for simple architecture, running simple version . 
   
 ### Master vs worker nodes
 - **Master Nodes** 🧠: Handle cluster management, including scheduling, controlling, and monitoring.
@@ -52,17 +54,29 @@
 - **Self-Launched Kubernetes Cluster**:
     - **Pros** ✅: Complete control over configurations, flexibility to tailor infrastructure.
     - **Cons** ❌: Requires maintenance and expertise, increased responsibility for security and updates.
+  
+- AKS take care of master node, dont charge for master node , youi pay for worker node and is separated from master node 
+- EKS/GKE charge for master node too 
 
 ### Control plane vs data plane
 - **Control Plane** 🛂: Manages the cluster’s overall state, workload scheduling, and updates.
 - **Data Plane** 🛣️: Runs on the worker nodes, executing the applications and handling network traffic.
-  
+- **for production minimum of 3 master nodes**
+- **master node** works on **control plane** and **worker node** works on **data plane**
+
 ## Kubernetes objects 
 
 ### Research the most common ones, e.g. Deployments, ReplicaSets, Pods
-- **Pods** 🧩: Smallest unit in Kubernetes, contains one or more containers.
+- **Pods** 🧩: Smallest unit in Kubernetes, contains one or more containers. Has each on internal ip address, they are ephemeral - temporary , can lose data if you distroy the pods. 
+- **Services** : expose your application and connects the pods. 
+- **Volume** : persist storage of data of the pods , even if pods are destroyed - you dont lose data 
+- **ConfigMaps and Secrets**: key value to store configuration of whats running how is running
+- **Secrets** are incoded with base64 that is not the same as encrypted, can easily transformed into text 
+- **NameSpace** : logical way to group resources for app, if dont specify will go to **default name space**
 - **ReplicaSets** 📈: Ensures a specified number of pod replicas are running.
-- **Deployments** 🔄: Manages ReplicaSets, allowing rolling updates and rollbacks for applications.
+- **Deployments** 🔄: Manages ReplicaSets, allowing rolling updates and rollbacks for applications
+ 
+  ![alt text](replica-kub.jpg)
   
 ### What does it mean a pod is "ephemeral"
 - **Ephemeral** means that pods are temporary by nature; they can be terminated, rescheduled, or replaced by Kubernetes for reasons such as node failure or workload balancing .
