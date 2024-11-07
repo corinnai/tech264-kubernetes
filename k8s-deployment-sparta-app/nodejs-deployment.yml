@@ -1,0 +1,33 @@
+---
+apiVersion: apps/v1 # specify the API version
+kind: Deployment # define the kind as a Deployment
+metadata:
+  name: nodejs-deployment # name the deployment
+spec:
+  selector:
+    matchLabels:
+      app: sparta-test-app # unique label for the Node.js app
+
+  # create a ReplicaSet with instances/pods
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: sparta-test-app
+    spec:
+      containers:
+      - name: nodejs-app
+        image: corinnai/sparta-test-app:v1-no-db
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            memory: "128Mi"  
+            cpu: "500m"      
+          requests:
+            memory: "64Mi"   
+            cpu: "250m"
+        env:
+          - name: DB_HOST
+            value: mongodb://mongo-service.default.svc.cluster.local:27017/posts
+        
