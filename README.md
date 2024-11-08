@@ -701,3 +701,5 @@ nodejs-deployment   Deployment/nodejs-deployment   cpu: <unknown>/50%   2       
 
 ## Step 4 : Test the Autoscaler with Apache Bench (ab)
 nothing is working 
+
+![alt text](images/cry-crying.gif)
