@@ -1,0 +1,13 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ab-test-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: ab
+        image: jordi/ab
+        command: ["ab", "-n", "1000", "-c", "50", "http://nodejs-svc:30002/"]
+      restartPolicy: Never
+  backoffLimit: 1

@@ -26,10 +26,10 @@ spec:
             cpu: "500m"      
           requests:
             memory: "64Mi"   
-            cpu: "250m"
-        env:
-          - name: DB_HOST
-            value: mongodb://mongo-service:27017/posts
+            cpu: "100m"
+        #env:
+          #- name: DB_HOST
+            #value: mongodb://mongo-service:27017/posts
         #command: ["/bin/sh", "-c"]
         #args: ["node seeds/seed.js && npm start app.js"]
         

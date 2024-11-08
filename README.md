@@ -203,7 +203,7 @@ kubectl get deployments
 
 
 
-5. **delete **
+5. **delete**
     ```bash
     kubectl delete deploy nginx-deployment
     ```
@@ -270,7 +270,7 @@ kubectl get deployments
 
     ![alt text](images/edit-methods.jpg)
 
-2. **method nr 2** ~
+2. **method nr 2** 
     ```bash
     nano nginx-deply.yml
     ```
@@ -346,8 +346,8 @@ metadata:
 spec:
   ports:
   - nodePort: 30002 # specify the NodePort within range 30000-32768
-    port: 3000
-    targetPort: 3000 # target port inside the container
+    port: 80 # port inside the cluster
+    targetPort: 3000 # target port inside the container 
   selector:
     app: sparta-test-app # updated label to match the app label in the deployment
   type: NodePort # expose the service via NodePort for external access
@@ -369,7 +369,7 @@ kubectl create -f nodejs-service.yml
 ## Step 4 MongoDB deployment and service
 
 1. mongo-deployment.yml
-```bash 
+```yaml
 # mongo-deployment.yml
 apiVersion: apps/v1
 kind: Deployment
@@ -392,7 +392,7 @@ spec:
         - containerPort: 27017
 ```
 2. mongo-services.yml
-```bash
+```yaml
 ---
 apiVersion: v1
 kind: Service
@@ -410,10 +410,10 @@ spec:
 ```
 
 ## Step 5 connect app with db
-```bash
+```yaml
 env:
   - name: DB_HOST
-    value: mongodb://mongo-service.default.svc.cluster.local:27017/posts 
+    value: mongodb://mongo-service:27017/posts
 ```
 
 ## Step 6 check if working
@@ -424,3 +424,279 @@ env:
   ![alt text](images/blocker.jpg)
 
   ![alt text](images/ports-running.jpg)
+
+
+- **Seeded the db**
+  ```bash
+  command: ["/bin/sh", "-c"]
+  args: ["node seeds/seed.js && npm start app.js"]
+  ```
+
+- **Seed manually** 
+    
+    1. 
+  ```bash
+  kubectl exec -it nodejs-deployment-7788f499c4-ftrxw -- sh
+  # Unable to use a TTY - input is not a terminal or the right kind of file
+  ```
+    2. 
+  ```bash
+  $ winpty kubectl exec -it nodejs-deployment-7788f499c4-ftrxw -- sh
+  /usr/src/app #
+  ```
+
+    3. print the DB_HOST
+  ```bash
+  /usr/src/app # printenv DB_HOST
+  mongodb://mongo-service:27017/posts
+  ```
+
+    4. seed the database
+  ```bash
+  /usr/src/app # node seeds/seed.js
+  ```
+
+  
+
+
+# Task: Create 2-tier deployment with PV for database
+```
+Pre-requisite: You have the NodeJS app and MongoDB database working on Kubernetes, but you are not using a PV (persistent volume) yet for the database.
+
+- Create mongo-node deploy and volume (PV and PVC).
+    - Be careful you don't allocate too much storage for the PV
+    - Remember to remove PV at the end (otherwise they will just stay there)
+
+Check them using these commands:
+
+    kubectl get pv
+    kubectl get pvc
+
+You will know you are successful if you:
+    - Delete the database deployment or the database pod
+    - Re-create the deployment or pod
+    - The same data displays on the /posts page.
+
+Diagram (20min) your Kubernetes architecture with the PV and PVC
+    - Have logical notes/dot points on your diagram, labels
+    - Then send the link for to your diagram
+
+If time: Create a 5 min video, showing the K8 deployment working and using your diagram to explain what you've done
+
+
+Links to help:
+
+https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+
+```
+
+## Step 1: Define the Persistent Volume (PV) and Define the Persistent Volume Claim (PVC)
+
+1. mongo-pv.yml
+    ```yaml
+    apiVersion: v1
+    kind: PersistentVolume
+    metadata:
+      name: mongo-pv
+    spec:
+      capacity:
+        storage: 1Gi # Limiting storage to 1GiB for testing
+      accessModes:
+        - ReadWriteOnce
+      persistentVolumeReclaimPolicy: Delete #optional
+      hostPath:
+        path: /data/mongo # Path on the host machine
+    ```
+
+    ```bash
+    kubectl apply -f mongo-pv.yml
+    ```
+2. mongo-pvc.yml
+    ```yaml
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: mongo-pvc
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+    ```
+    ```bash
+    kubectl apply -f mongo-pvc.yml
+    ```
+  
+## Step 2: Deploy MongoDB with the PVC
+
+1. mongo-deployment.yml
+    ```yaml
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: mongo-deployment
+    spec:
+      selector:
+        matchLabels:
+          app: mongo
+      replicas: 1
+      template:
+        metadata:
+          labels:
+            app: mongo
+        spec:
+          containers:
+          - name: mongodb
+            image: mongodb/mongodb-community-server:7.0.6-ubuntu2204 # MongoDB Docker image
+            ports:
+            - containerPort: 27017
+            volumeMounts:
+            - mountPath: /data/db
+              name: mongo-storage
+          volumes:
+          - name: mongo-storage
+            persistentVolumeClaim:
+              claimName: mongo-pvc
+    ```
+
+    ```bash
+    kubectl apply -f mongo-deployment.yml
+    ```
+
+
+2. mongo-service.yml
+  [mongo-service.yml](k8s-deployment-sparta-app/mongo-services.yml)
+
+     ```bash
+    kubectl apply -f mongo-service.yml
+    ```
+
+## Step 3 : Verify PV and PVC Status
+```bash
+kubectl get pv
+kubectl get pvc
+```
+
+![alt text](images/pv-pvc.jpg)
+
+
+## Step 4: Deploy the Node.js App
+1. nodejs-deployment.yml [nodejs-deployment](k8s-deployment-sparta-app/nodejs-deployment.yml)
+2. nodejs-service.yml [nodejs-service.yml](k8s-deployment-sparta-app/nodejs-service.yml)
+
+```bash
+kubectl apply -f nodejs-deployment.yml
+
+kubectl apply -f nodejs-service.yml
+```
+## Step 5: Seed the database manually 
+```bash
+winpty kubectl exec -it nodejs-deployment-7b48789698-hmqm5 -- sh
+#nodejs-deployment-7b48789698-hmqm5 - name of one node 
+```
+
+![alt text](images/database-seeded.jpg)
+
+```bash
+/usr/src/app # node seeds/seed.js
+```
+
+
+## Step 6: Test Data Persistence
+
+1. Delete the database deployment or the database pod
+   - Delete the MongoDB Pod:
+      ```bash
+      kubectl delete pod -l app=mongo
+      ```
+    - Delete the database deployment 
+      ```bash
+      kubectl delete -f mongo-deployment.yml
+      ```  
+
+2. Recreate the MongoDB Pod Automatically or deployment 
+    - **For pod** : Kubernetes will automatically start a new pod based on the deployment configuration. Allow some time for it to spin up.
+    - **For deployment**
+        ```bash
+        kubectl apply -f mongo-deployment.yml
+        ```
+
+![alt text](images/pv-pvc-diag.jpg)
+
+
+
+# Task: Research types of autoscaling with K8s
+- In Kubernetes, there are three primary types of autoscaling mechanisms, each addressing different aspects of scaling:
+
+1. **Horizontal Pod Autoscaling (HPA)**:
+   - **Function**: HPA adjusts the number of pod replicas for a deployment, replica set, or stateful set based on observed metrics.
+   - **Metrics**: Typically based on CPU and memory usage, but can also be customized with other application-specific metrics (e.g., request count, latency).
+   - **Use Case**: This is useful for scaling out applications under increased load and scaling back in when the load decreases, optimizing resource utilization.
+   - **Implementation**: Defined with a target (e.g., 50% CPU usage) so that the number of replicas adjusts as load varies.
+
+   - **command example**
+      ```bash
+      kubectl autoscale deployment my-app --cpu-percent=50 --min=2 --max=10
+      # kubectl autoscale deployment <deployment-name> --cpu-percent=50 --min=2 --max=10
+      ```
+
+2. **Vertical Pod Autoscaling (VPA)**:
+     - **Function**: VPA automatically adjusts the CPU and memory resource requests and limits for running pods based on usage patterns.
+     - **Metrics**: Observes historical and current resource usage and adjusts resource requests for better utilization.
+     - **Use Case**: Ideal for workloads where scaling the resource size of individual pods rather than increasing the number of pods can improve performance and efficiency.
+     - **Implementation**: Pods are evicted and recreated with new resource allocations, making it more suited for applications that can tolerate restarts.
+     - **Configuration**: Set up as a VPA object alongside deployments.
+     -  **command example**
+        ```yaml
+        apiVersion: autoscaling.k8s.io/v1
+        kind: VerticalPodAutoscaler
+        metadata:
+          name: <vpa-name>
+        spec:
+          targetRef:
+            apiVersion: "apps/v1"
+            kind: Deployment
+            name: <deployment-name>
+          updatePolicy:
+            updateMode: "Auto"
+        ```
+
+3. **Cluster Autoscaling**:
+      - **Function**: Automatically scales the number of nodes in the cluster based on the resource demands of scheduled pods.
+      - **Metrics**: Monitors pending pods that cannot be scheduled due to insufficient resources and adjusts node count to accommodate them.
+      - **Use Case**: Ideal for handling fluctuations in resource demand across the entire cluster, especially in cloud environments where node resources are elastic.
+      - **Implementation**: Configured at the cluster level (usually on cloud providers like AWS, GCP, Azure, etc.) using a cluster autoscaler tool that communicates with the Kubernetes API server to add or remove nodes as required.
+      - **Example Configuration**: Set through the cloud provider’s autoscaling options, specifying minimum and maximum node limits for the cluster.
+
+
+
+# Task: Use Horizontal Pod Autoscaler (HPA) to scale the app
+
+```
+Scale only the app (2 minimum, 10 maximum replicas)
+Test your scaler works by load testing
+    You could use Apache Bench (ab) for load testing
+```
+
+## Step 1: create the scripts
+[nodejs-deployment](HPA-scale-app/nodejs-deployment.yml)
+[nodejs-service](HPA-scale-app/nodejs-service.yml)
+
+## Step 2 :  Configure the Horizontal Pod Autoscaler
+```bash
+kubectl autoscale deployment nodejs-deployment --cpu-percent=50 --min=2 --max=10
+# horizontalpodautoscaler.autoscaling/nodejs-deployment autoscaled
+```
+## Step 3: Verify the HPA Configuration
+```bash
+kubectl get hpa
+```
+```bash
+$ kubectl get hpa
+NAME                REFERENCE                      TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
+nodejs-deployment   Deployment/nodejs-deployment   cpu: <unknown>/50%   2         10        3          104s
+```
+
+## Step 4 : Test the Autoscaler with Apache Bench (ab)
